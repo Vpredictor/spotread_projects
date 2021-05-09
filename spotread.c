@@ -566,13 +566,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     if(nrhs < 1){
         mexErrMsgIdAndTxt("MyToolbox:arrayProduct:nrhs","one inputs required.");
     }
-    if(nlhs !=1){
-        mexErrMsgIdAndTxt("MyToolbox:arrayProduct:nlhs","one outputs required.");
-    }
+//     if(nlhs !=1){
+//         mexErrMsgIdAndTxt("MyToolbox:arrayProduct:nlhs","one outputs required.");
+//     }
     
     //声明变量
     // input matrix
-    char command[256]={0};
+    //char command[256]={0};
     //size of input matrix
     //int ncols;
     // output matrix
@@ -583,7 +583,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 //     arr = mxCalloc(buflen, sizeof(char));
 //     inMatrix = mxGetString(prhs[0], arr, buflen);
     
-    mxGetString(prhs[0], command, 128);
+    
     //get dimensions of the input matrix
     //ncols = mxGetM(prhs[0]);
     //输出数据
@@ -695,59 +695,96 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     /*New Process arguments*/
     //char command[256] = {0};
     //char filename[40] = {0};
-    mxGetString(prhs[0], command, 256);
     int ii = 0;
-    bool flag = false;
-    while(ii < 256 && command[ii]){
-        if(command[ii] == '-'){
-            ii++;
-            char *na = NULL;
-            if(command[ii] == 'e'){
-                if(command[ii+1] && command[ii+1] != ' '){
-                    if(command[ii+1] == 'b' || command[ii+1] == 'B') emiss = 2;
-                    else if(command[ii + 1] == 'w' || command[ii + 1] == 'W') emiss = 3;
-                    else usage("-e modifier '%c' not recognised", command[ii+1]);
-                }
-                emiss = 1;
-                trans = 0;
-                tele = 0;
-                ambient = 0;
-            }
-            else if(command[ii] == 'x'){
-                doYxy = 1;
-                doLCh = 0;
-                doYuv = 0;
-            }
-            else if(command[ii] == 'O'){
-                doone = 1;
+    while(ii < nrhs){
+        char* command;
+        mwSize command_size;
+        command_size = mxGetN(prhs[ii])*sizeof(mxChar);
+        command = (char*)mxMalloc(command_size);
+        command = mxArrayToString(prhs[ii]);
+        if(strcmp(command,"e") == 0){
+            emiss = 1;
+            trans = 0;
+            tele = 0;
+            ambient = 0;
+        }else if(strcmp(command,"eb") == 0 || strcmp(command, "eB") == 0){
+            emiss = 2;
+            trans = 0;
+            tele = 0;
+            ambient = 0;
+        }else if(strcmp(command, "ew") == 0 || strcmp(command, "eW") == 0){
+            emiss = 3;
+            trans = 0;
+            tele = 0;
+            ambient = 0;
+        }else if(strcmp(command, "x") == 0){
+            doYxy = 1;
+            doLCh = 0;
 #ifndef SALONEINSTLIB
-                if(command[ii+1] && command[ii+1] == '@'){
-                    doone = 2;
-                    //fa = nfa;
-                    //strncpy(outspname, na, MAXNAMEL-1); outspname[MAXNAMEL-1] = '\000';
-                    int k = 0;
-                    ii += 1;
-                    while(command[ii+1] && command[ii + 1] != ' '){
-                        outspname[k++] = command[++ii];
-                    }
-                    outspname[k] = '\0';
-                    //break;
-                }
+            doYuv = 0;
 #endif
-            }
-            
+        }else if(strcmp(command, "O") == 0){
+            doone = 1;
         }
-//         if(command[i] == '@'){
-//             int k = 0;
-//             flag = true;
-//             while(command[i+1] && command[i + 1] != ' '){
-//                 outspname[k++] = command[++i];
-//             }
-//             outspname[k] = '\0';
-//             break;
-//         }
+        else if(strcmp(command, "O-") == 0){
+            doone = 2;
+#ifndef SALONEINSTLIB
+            ii++;
+            char* logfile;
+            mwSize logfile_size;
+            logfile_size = mxGetN(prhs[ii])*sizeof(mxChar);
+            logfile = (char*)mxMalloc(logfile_size);
+            logfile = mxArrayToString(prhs[ii]);
+            strcpy(outspname, logfile);
+            mxFree(logfile);
+#endif
+        }
+        mxFree(command);
         ii++;
     }
+//     int ii = 0;
+//     bool flag = false;
+//     while(ii < 256 && command[ii]){
+//         if(command[ii] == '-'){
+//             ii++;
+//             char *na = NULL;
+//             if(command[ii] == 'e'){
+//                 if(command[ii+1] && command[ii+1] != ' '){
+//                     if(command[ii+1] == 'b' || command[ii+1] == 'B') emiss = 2;
+//                     else if(command[ii + 1] == 'w' || command[ii + 1] == 'W') emiss = 3;
+//                     else usage("-e modifier '%c' not recognised", command[ii+1]);
+//                 }
+//                 emiss = 1;
+//                 trans = 0;
+//                 tele = 0;
+//                 ambient = 0;
+//             }
+//             else if(command[ii] == 'x'){
+//                 doYxy = 1;
+//                 doLCh = 0;
+//                 doYuv = 0;
+//             }
+//             else if(command[ii] == 'O'){
+//                 doone = 1;
+// #ifndef SALONEINSTLIB
+//                 if(command[ii+1] && command[ii+1] == '@'){
+//                     doone = 2;
+//                     //fa = nfa;
+//                     //strncpy(outspname, na, MAXNAMEL-1); outspname[MAXNAMEL-1] = '\000';
+//                     int k = 0;
+//                     ii += 1;
+//                     while(command[ii+1] && command[ii + 1] != ' '){
+//                         outspname[k++] = command[++ii];
+//                     }
+//                     outspname[k] = '\0';
+//                     //break;
+//                 }
+// #endif
+//             }
+//             
+//         }
+//         ii++;
+//     }
     //if(flag) printf("%s\n", filename);
     //printf("\n");
     
@@ -1199,16 +1236,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 // 	}
 
     /*Get the optional file name argument*/
-    if(command[i] == '@'){
-        int k = 0;
-        //flag = true;
-        while(command[i+1] && command[i + 1] != ' '){
-            outname[k++] = command[++i];
-        }
-        outname[k] = '\0';
-        if((fp = fopen(outname, 'w')) == NULL)
-            printf("Unable to open logfile '%s' for writing\n", outname);
-    }
+//     if(command[i] == '@'){
+//         int k = 0;
+//         //flag = true;
+//         while(command[i+1] && command[i + 1] != ' '){
+//             outname[k++] = command[++i];
+//         }
+//         outname[k] = '\0';
+//         if((fp = fopen(outname, "w")) == NULL)
+//             printf("Unable to open logfile '%s' for writing\n", outname);
+//     }
 	/* Get the optional file name argument */
 // 	if (fa < nrhs) {
 // 		strncpy(outname,inMatrix[fa++],MAXNAMEL-1); outname[MAXNAMEL-1] = '\000';
