@@ -912,7 +912,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 #endif
         //Manual calibration
         }else if(strcmp(command, "manualCal") == 0){
-            
+            char next_param[20];
+            strcpy(next_param, command_line[k + 1]);
+            int num = isNumber(next_param);
+            if(num < 0 || num > 9){
+                printf("No parameter or parameter not recognised");
+            }else{
+                docalib = num;
+                k++;
+            }
         }
         k++;
     }
