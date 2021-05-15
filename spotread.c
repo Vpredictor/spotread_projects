@@ -930,15 +930,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				if (read_cmf(custObserver, next_param) != 0)
 					usage(0,"Failed to read custom observer CMF from -Q file '%s'",next_param);
 			}
-        //original param 'e'=0,'eb'=1,'ew'=2,'t'=3,'p'=4,'pb'=5,'pw'=6,'a'=7,'f'=8,'r'=9
+        //original param 'e'=0,'eb'=1,'ew'=2,'t'=3,'p'=4,'pb'=5,'pw'=6,'a'=7,'f'=8,'r'=9,'rw'=10
         }else if(stricmp(command, "measureMode") == 0){
             //printf("measureMode\n");
             char next_param[COMMAND_LENGTH];
             strcpy(next_param, command_line[k + 1]);
             int num = isNumber(next_param);
             //printf("%d\n", num);
-            if(num < 0 || num > 9){
-                printf("wrong number for measureMode,please input from 0 to 9");
+            if(num < 0 || num > 10){
+                printf("wrong number for measureMode,please input from 0 to 10");
                 break;
             }else if(num == 0){
                 emiss = 1, trans = 0, tele = 0, ambient = 0;
