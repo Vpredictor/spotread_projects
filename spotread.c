@@ -46,6 +46,7 @@
 #include <string.h>
 #include "mex.h"
 #include <matrix.h>
+#include <sys/stat.h>
 #ifndef SALONEINSTLIB
 # include "copyright.h"
 # include "aconfig.h"
@@ -78,6 +79,7 @@
 
 #undef DO_TM3015_PLOT	/* Diagnostic */
 
+#define COMMAND_LENGTH 100
 /* ----------------------------------------------------------------- */
 
 #ifdef DO_TM3015_PLOT
@@ -85,6 +87,7 @@
 #pragma message("#### spectro/spotread.c DO_TM3015_PLOT is enabled ####")
 
 #define SSAMP 4
+
 
 // Note that bins is modified
 // static void tm3015_plot(double bins[IES_TM_30_15_BINS][2][3]) {
@@ -429,15 +432,27 @@ static inst_code uicallback(void *cntx, inst_ui_purp purp) {
 
 
 /*Determine whether a string is a number, if true, return number, else return -1*/
-int isNumber(char str[], int len){
+int isNumber(char *str){
     int num = 0;
-    for(int i = 0; i < len; i++){
+    int i = 0;
+    while(str[i]){
         if(str[i] >= '0' && str[i] <= '9'){
             num = num * 10 + str[i] - '0';
         }
         else return -1;
+        i++;
     }
     return num;
+}
+
+/*Determine whether a string is a filename,if true return 1,else return 0*/
+int isFile(char *str){
+    struct stat sb;
+    //check the return value of stat
+    if(stat(str, &sb) != -1 && S_ISREG(sb.st_mode) != 0){
+        return 1;
+    }
+    return 0;
 }
 
 /*
@@ -580,6 +595,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
         mexErrMsgIdAndTxt("MyToolbox:arrayProduct:nrhs","at least one input required.");
         usage("Usage requested");
     }
+    
 //     if(nlhs !=1){
 //         mexErrMsgIdAndTxt("MyToolbox:arrayProduct:nlhs","one outputs required.");
 //     }
@@ -707,42 +723,52 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	rsp.spec_n = 0;
 
     /*New Process arguments*/
-    //char command[256] = {0};
-    //char filename[40] = {0};
-    char command_line[100][20] = {0};
+    //read in all parameters
+    char command_line[100][COMMAND_LENGTH] = {0};
     int num_param = 0;
     for(int ii = 0;ii < nrhs - 1;ii++){
         char* command;
         mwSize command_size;
-        command_size = mxGetN(prhs[ii])*sizeof(mxChar);
-        command = (char*)mxMalloc(temp_size);
-        comand = mxArrayToString(prhs[ii]);
+        int length = mxGetN(prhs[ii]);
+        if(length > COMMAND_LENGTH){
+            printf("The length of parameter is too long\n");
+            //todo
+            
+            break;
+        }
+        command_size = length*sizeof(mxChar);
+        command = (char*)mxMalloc(command_size);
+        command = mxArrayToString(prhs[ii]);
         strcpy(command_line[ii], command);
         mxFree(command);
         num_param++;
     }
     char* command;
     mwSize command_size;
-    command_size = mxGetN(prhs[ii])*sizeof(mxChar);
-    command = (char*)mxMalloc(temp_size);
-    comand = mxArrayToString(prhs[ii]);
+    command_size = mxGetN(prhs[nrhs - 1])*sizeof(mxChar);
+    command = (char*)mxMalloc(command_size);
+    command = mxArrayToString(prhs[nrhs - 1]);
     //以@开头的表示logfile
     if(command[0] == '@'){
-    
+        strcpy(outname, command + 1);
+        if((fp = fopen(outname, "w")) == NULL){
+            error("Unable to open logfile '%s' for writing\n", outname);
+        }
     }else{
         //否则就是普通参数
         strcpy(command_line[nrhs - 1], command);
         num_param++;
     }
     mxFree(command);
+    //process parameter
     int k = 0;
     while(k < num_param){
-        char command[20];
+        char command[COMMAND_LENGTH];
         strcpy(command, command_line[k]);
         //original param 'D'
-        if(strcmp(command, "printDebug") == 0){
+        if(stricmp(command, "printDebug") == 0){
             debug = 1;
-            char next_param[20];
+            char next_param[COMMAND_LENGTH];
             strcpy(next_param, command_line[k + 1]);
             int num = isNumber(next_param);
             if(num >= 0 && num <= 9){
@@ -751,19 +777,19 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
             }else{
                 printf("wrong level for print debug diagnostics");
             }
-            g_log>debug = debug;
+            g_log->debug = debug;
         //original param '?'
-        }else if(strcmp(command, "?") == 0){
+        }else if(stricmp(command, "?") == 0){
             usage("Usage requested");
         //original param 'v'
-        }else if(strcmp(command, "verboseMode") == 0){
+        }else if(stricmp(command, "verboseMode") == 0){
             verb = 1;
             g_log->verb = verb;
         //original param 's' or 'S', default 's',
-        }else if(strcmp(command, "showSpectrum") == 0){
+        }else if(stricmp(command, "showSpectrum") == 0){
             //default print spectrum for each reading
             pspec = 1;
-            char next_param[20];
+            char next_param[COMMAND_LENGTH];
             strcpy(next_param, command_line[k + 1]);
             if(strcmp(next_param, "1") == 0){
                 pspec = 1;
@@ -771,50 +797,164 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
             }else if(strcmp(next_param, "2") == 0){
                 pspec = 2;
             }
-        //original param 'I'
-        }else if(strcmp(command, "setSimulatedInst") == 0){
-            char next_param[20];
-            strcpy(next_param, command_line[k + 1]);
-        
-            
-            
-        //original param 'w'
-        }else if(strcmp(command, "use-IParam") == 0){
-            labwpillum = 1;
-        //original param 'Q'
-        }else if(strcmp(comamnd, "chooseCIEObserver") == 0){
-            char next_param[20];
-            strcpy(next_param, command_line[k + 1]);
-            
-            
-            
-        //original param 'e'=0,'eb'=1,'ew'=2,'t'=3,'p'=4,'pb'=5,'pw'=6,'a'=7,'f'=8,'r'=9
-        }else if(strcmp(command, "measureMode") == 0){
-            char next_param[20];
+        //COM port, original parameter 'c'
+        }else if(stricmp(command, "comPort") == 0){
+            char next_param[COMMAND_LENGTH];
             strcpy(next_param, command_line[k + 1]);
             int num = isNumber(next_param);
+            if(num < 1 || num > 40){
+                printf("no parameter or parameter out of range\n");
+            }else{
+                comport = num;
+            }
+        //Display type,original parameter 'y'
+        }else if(stricmp(command, "displayType") == 0){
+            char next_param[COMMAND_LENGTH];
+            strcpy(next_param, command_line[k + 1]);
+            int num = isNumber(next_param);
+            if(num < 0){
+                printf("No parameter\n");
+            }
+            ditype = num;
+            //todo
+            
+            
+            
+        }
+#ifndef SALONEINSTLIB
+        //Simulated instrument illumination (FWA),original param 'I'
+        else if(stricmp(command, "setSimulatedInst") == 0){
+            tillum_set = spec = 1;
+            char next_param[COMMAND_LENGTH];
+            strcpy(next_param, command_line[k + 1]);
+            if(stricmp(next_param, "A") == 0 || stricmp(next_param, "M0") == 0){
+                tillum = icxIT_A;
+            }else if(stricmp(next_param, "C") == 0){
+                tillum = icxIT_C;
+            }else if(stricmp(next_param, "D50") == 0 || stricmp(next_param, "M1") == 0){
+                tillum = icxIT_D50;
+            }else if(stricmp(next_param, "D50M2") == 0 || stricmp(next_param, "M2") == 0){
+                tillum = icxIT_D50M2;
+            }else if(stricmp(next_param, "D65") == 0){
+                tillum = icxIT_D65;
+            }else if(stricmp(next_param, "F5") == 0){
+                tillum = icxIT_F8;
+            }else if(stricmp(next_param, "F8") == 0){
+                tillum = icxIT_F8;
+            }else if(stricmp(next_param, "F10") == 0){
+                tillum = icxIT_F10;
+            }else{
+                //Assume it's a filename
+                inst_meas_type mt;
+                tillum = icxIT_custom;
+                if(read_xspect(&cust_tillum, &mt, next_param) != 0){
+                    usage("Failed to read custom target illuminant spectrum in file '%s'", next_param);
+                }
+                if (mt != inst_mrt_none
+                    && mt != inst_mrt_emission
+                    && mt != inst_mrt_ambient
+                    && mt != inst_mrt_emission_flash
+                    && mt != inst_mrt_ambient_flash)
+                        error("Target illuminant '%s' is wrong measurement type",next_param);
+            }
+        }
+#endif /*!SALONEINSTLIB*/
+        //Spectral Illuminant type for XYZ computation,original parameter 'i'
+        else if(stricmp(command, "spectralIlluminantType") == 0){
+            illum_set = spec = 1;
+            char next_param[COMMAND_LENGTH];
+            strcpy(next_param, command_line[k + 1]);
+            if(stricmp(next_param, "A") == 0){
+                illum = icxIT_A;
+            }else if(stricmp(next_param, "C") == 0){
+                illum = icxIT_C;
+            }else if(stricmp(next_param, "D50") == 0){
+                illum = icxIT_D50;
+            }else if(stricmp(next_param, "D50M2") == 0){
+                illum = icxIT_D50M2;
+            }else if(stricmp(next_param, "D65") == 0){
+                illum = icxIT_D65;
+            }
+#ifndef SALONEINSTLIB
+            else if(stricmp(next_param, "F5") == 0){
+                illum = icxIT_F5;
+            }else if(stricmp(next_param, "F8") == 0){
+                illum = icxIT_F8;
+            }else if(stricmp(next_param, "F10") == 0){
+                illum = icxIT_F10;
+            }else{
+                //Assume it's a filename
+                inst_meas_type mt;
+                tillum = icxIT_custom;
+                if(read_xspect(&cust_tillum, &mt, next_param) != 0){
+                    usage("Unable to read custom illuminant file '%s'", next_param);
+                }
+                if (mt != inst_mrt_none
+                    && mt != inst_mrt_emission
+                    && mt != inst_mrt_ambient
+                    && mt != inst_mrt_emission_flash
+                    && mt != inst_mrt_ambient_flash)
+                        error("Custom illuminant '%s' is wrong measurement type",next_param);
+            }
+#else /*SALONEINSTLIB*/
+            else usage("Unrecognised illuminant '%s'", next_param);
+#endif
+        }
+        //Use -i illuminant for L*a*b conversion,original parameter 'w'
+        else if(stricmp(command, "useIParam") == 0){
+            labwpillum = 1;
+        //Spectral Observer type,original param 'Q'
+        }else if(stricmp(command, "chooseCIEObserver") == 0){
+            char next_param[COMMAND_LENGTH];
+            strcpy(next_param, command_line[k + 1]);
+            if (strcmp(next_param, "1931_2") == 0) {			/* Classic 2 degree */
+				obType = icxOT_CIE_1931_2;
+			} else if (strcmp(next_param, "1964_10") == 0) {	/* Classic 10 degree */
+				obType = icxOT_CIE_1964_10;
+			} else if (strcmp(next_param, "2012_2") == 0) {		/* Latest 2 degree */
+				obType = icxOT_CIE_2012_2;
+			} else if (strcmp(next_param, "2012_10") == 0) {	/* Latest 10 degree */
+				obType = icxOT_CIE_2012_10;
+			} 
+#ifndef SALONEINSTLIB
+            else if (strcmp(next_param, "1955_2") == 0) {		/* Stiles and Burch 1955 2 degree */
+				obType = icxOT_Stiles_Burch_2;
+			} else if (strcmp(next_param, "1978_2") == 0) {		/* Judd and Voss 1978 2 degree */
+				obType = icxOT_Judd_Voss_2;
+			} else if (strcmp(next_param, "shaw") == 0) {		/* Shaw and Fairchilds 1997 2 degree */
+				obType = icxOT_Shaw_Fairchild_2;
+			} 
+#endif /* !SALONEINSTLIB */
+            else {
+				obType = icxOT_custom;
+				if (read_cmf(custObserver, next_param) != 0)
+					usage(0,"Failed to read custom observer CMF from -Q file '%s'",next_param);
+			}
+        //original param 'e'=0,'eb'=1,'ew'=2,'t'=3,'p'=4,'pb'=5,'pw'=6,'a'=7,'f'=8,'r'=9
+        }else if(stricmp(command, "measureMode") == 0){
+            //printf("measureMode\n");
+            char next_param[COMMAND_LENGTH];
+            strcpy(next_param, command_line[k + 1]);
+            int num = isNumber(next_param);
+            //printf("%d\n", num);
             if(num < 0 || num > 9){
                 printf("wrong number for measureMode,please input from 0 to 9");
-                //todo
-                
-                
-                
                 break;
             }else if(num == 0){
-                continue;
+                emiss = 1, trans = 0, tele = 0, ambient = 0;
             }else if(num == 1){
                 emiss = 2, trans = 0, tele = 0, ambient = 0;
             }else if(num == 2){
                 emiss = 3, trans = 0, tele = 0, ambient = 0;
             }else if(num == 3){
                 emiss = 0, trans = 1, tele = 0, ambient = 0;
-            }else if(strcmp(num == 4){
+            }else if(num == 4){
                 emiss = 1, trans = 0, tele = 1, ambient = 0;
-            }else if(strcmp(num == 5){
+            }else if(num == 5){
                 emiss = 2, trans = 0, tele = 1, ambient = 0;
-            }else if(strcmp(num == 6){
-                emiss = 3, tranas = 0, tele = 1, ambient = 0;
-            }else if(strcmp(num == 7){
+            }else if(num == 6){
+                emiss = 3, trans = 0, tele = 1, ambient = 0;
+            }else if(num == 7){
                 if(trans) ambient = 1;
                 else{
                     emiss = 1, trans = 0, tele = 0, ambient = 1;
@@ -822,107 +962,235 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
             }else if(num == 8){
                 emiss = 1, trans = 0, tele = 0, ambient = 2;
             }else if(num == 9){
-                emiss = 0, trans = 0, tele = 0, amibent = 0;
+                emiss = 0, trans = 0, tele = 0, ambient = 0;
             }else if(num == 10){
                 emiss = 0, trans = 0, tele = 0, ambient = 0, refwr = 1;
             }
             k++;
-        }else if(strcmp(command, "F") == 0){
-            char next_param[20];
+        //Filter configuration,original parameter 'F n' = 0, 'F p' = 1, 'F 6' = 2, 'F u' = 3
+        }else if(stricmp(command, "filterConfig") == 0){
+            char next_param[COMMAND_LENGTH];
             strcpy(next_param, command_line[k + 1]);
-            if(strcmp(next_param, "n") == 0 || strcmp(next_param, "N") == 0){
+            int num = isNumber(next_param);
+            if(num < 0 || num > 3){
+                printf("No parameter or no parameter recognised");
+                break;
+            }else if(num == 0){
                 fe = inst_opt_filter_none;
-                k++;
-            }else if(strcmp(next_param, "p") == 0 || strcmp(next_param, "P") == 0){
+            }else if(num == 1){
                 fe = inst_opt_filter_pol;
-                k++;
-            }else if(strcmp(next_param, "6") == 0){
+            }else if(num == 2){
                 fe = inst_opt_filter_D65;
-                k++;
-            }else if(strcmp(next_param, "u") == 0 || strcmp(next_param, "U") == 0){
+            }else if(num == 3){
                 fe = inst_opt_filter_UVCut;
-                k++;
-            }else{
-                printf("No parameter or parameter not recognised");
             }
-        }else if(strcmp(cmomand, "E") == 0){
-            //todo
-            
-            
-            
-            
-            
-        }else if(strcmp(command, "A") == 0){
-            char next_param[20];
+            k++;
+        //Extra filter compensation file,original parameter 'E'
+        }else if(stricmp(command, "E") == 0){
+            char next_param[COMMAND_LENGTH];
             strcpy(next_param, command_line[k + 1]);
-            if(strcmp(next_param, "N") == 0){
-                calstd = xcalstd_none;
-                k++;
-            }else if(strcmp(next_param, "A") == 0){
-                calstd = xcalstd_xrga;
-                k++;
-            }else if(strcmp(next_param, "X") == 0){
-                calstd = xcalstd_xrdi;
-                k++;
-            }else if(strcmp(next_param, "G") == 0){
-                calstd = xcalstd_gmdi;
+            if(isFile(next_param)){
+                strcpy(filtername, next_param);
                 k++;
             }else{
-                printf("No parameter or parameter not recognised");
+                usage("Parameter expected following -E");
             }
-        }else if(strcmp(command, "Display") == 0){
-            char next_param[20];
+        //XRGA conversion,original parameter 'A'
+        }else if(stricmp(command, "xrgaConversion") == 0){
+            char next_param[COMMAND_LENGTH];
+            strcpy(next_param, command_line[k + 1]);
+            int num = isNumber(next_param);
+            if(num < 0 || num > 3){
+                printf("No parameter or parameter not recognised");
+                break;
+            //original parameter 'N'
+            }else if(num == 0){
+                calstd = xcalstd_none;
+            //original parameter 'A'
+            }else if(num == 1){
+                calstd = xcalstd_xrga;
+            //original parameter 'X'
+            }else if(num == 2){
+                calstd = xcalstd_xrdi;
+            //original parameter 'G'
+            }else if(num == 3){
+                calstd = xcalstd_gmdi;
+            }
+            k++;
+        //Display,original parameter 'x','h','u'
+        }else if(stricmp(command, "Display") == 0){
+            char next_param[COMMAND_LENGTH];
             strcpy(next_param, command_line[k + 1]);
             int num = isNumber(next_param);
             if(num < 0 || num > 2){
-                //todo
-                
-            //Show Yxy
+                printf("No parameter or parameter not recognised");
+                break;
+            //Show Yxy,original parameter 'x'
             }else if(num == 0){
                 doYxy = 1, doLCh = 0;
 #ifndef SALONEINSTLIB
                 doYuv = 0;
 #endif
                 k++;
-            //Show Lch
+            //Show Lch,original parameter 'h'
             }else if(num == 1){
                 doYxy = 0, doLCh = 1;
 #ifndef SALONEINSTLIB
                 doLCh = 0;
 #endif
                 k++;
+            }
 #ifndef SALONEINSTLIB
-            //Show Yuv
-            }else if(num == 2){
+            //Show Yuv,original parameter 'u'
+            else if(num == 2){
                 doYxy = 0;
                 doLCh = 0;
                 doYuv = 1;
                 k++;
-#endif
             }
-        }else if(strcmp(command, "computeAvgAndDev") == 0){
+#endif
+        //Compute running average and standard deviation from ref.Also turns off clamping,original parameter 'V'
+        }else if(stricmp(command, "computeAvgAndDev") == 0){
             refstats = 1;
+        }
 #ifndef SALONEINSTLIB
         //Show CCT etc,original parameter 'T'
-        }else if(strcmp(command, "showCCT") == 0){
+        else if(stricmp(command, "showCCT") == 0){
             doCCT = 1;
         //Show densities,original parameter 'd'
-        }else if(strcmp(command, "showDensities") == 0){
+        }else if(stricmp(command, "showDensities") == 0){
             doDensity = 1;
+        }
 #endif
-        //Manual calibration
-        }else if(strcmp(command, "manualCal") == 0){
-            char next_param[20];
+        //Manual calibration,original parameter 'K'
+        else if(stricmp(command, "manualCal") == 0){
+            char next_param[COMMAND_LENGTH];
             strcpy(next_param, command_line[k + 1]);
             int num = isNumber(next_param);
             if(num < 0 || num > 9){
-                printf("No parameter or parameter not recognised");
+                printf("No parameter or parameter not recognised\n");
+                break;
             }else{
                 docalib = num;
                 k++;
             }
+        //No auto calibration,original parameter 'N'
+        }else if(stricmp(command, "nAutoCal") == 0){
+            nocal = 1;
+        //Do one cal. or measure and exit,original parameter 'O'
+        }else if(stricmp(command, "calOrMeasure") == 0){
+            doone = 1;
+#ifndef SALONEINSTLIB
+            char next_param[COMMAND_LENGTH];
+            strcpy(next_param, command_line[k + 1]);
+            if(isFile(next_param)){
+                strncpy(outspname, next_param, MAXNAMEL - 1);outspname[MAXNAMEL - 1] = '\000';
+                doone = 2;
+                k++;
+            }
+#endif
+        //High res mode,original parameter 'H'
+        }else if(stricmp(command, "highResMode") == 0){
+            highres = 1;
+        //Colorimeter Correction Matrix or Colorimeter Calibration Spectral Samples,original parameter 'X'
+        }else if(stricmp(command, "X") == 0){
+            char next_param[COMMAND_LENGTH];
+            strcpy(next_param, command_line[k + 1]);
+            if(isFile(next_param)){
+                strcpy(ccxxname, next_param);
+                k++;
+            }else{
+                usage("Parameter expected after -K");
+            }
+        }
+#ifndef SALONEINSTLIB
+        //Present reference spectrum,original parameter 'R'
+        else if(stricmp(command, "presetReferenceSpect") == 0){
+            char next_param[COMMAND_LENGTH];
+            strcpy(next_param, command_line[k + 1]);
+            if(isFile(next_param)){
+                strcpy(psetrefname, next_param);
+                k++;
+            }else{
+                usage("-R fname.sp syntax incorrect");
+            }
+        }
+#endif
+        //Extra flags,original parameter 'Y'
+        else if(stricmp(command, "extraFlags") == 0){
+            char next_param[COMMAND_LENGTH];
+            strcpy(next_param, command_line[k + 1]);
+            int num = isNumber(next_param);
+            if(num < 0){
+                if(next_param[0] == 'R' || next_param[0] == 'r'){
+                    //to change
+                    if(next_param[1] != ':') usage("-Y R:rate syntax incorrect");
+                    refrate = (double)isNumber(next_param + 2);
+                    if(refrate < 5.0 || refrate > 150.0){
+                        usage("-Y R:rate %f Hz not in valid range", refrate);
+                    }
+                }
+#ifndef SALONEINSTLIB
+                else if(next_param[0] == 'W' || next_param[0] == 'w'){
+                    if(next_param[1] != ':') usage("-Y W:fname.sp syntax incorrect");
+                    strcpy(wtilename, next_param + 2);
+                }
+#endif
+                else{
+                    printf("No parameter or parameter not recognised");
+                    break;
+                }
+            //original parameter 'A'
+            }else if(num == 0){
+                nadaptive = 1;
+            //original parameter 'a'
+            }else if(num == 1){
+                averagemode = 1;
+            //original parameter 'r'
+            }else if(num == 2){
+                refrmode = 1;
+            //original parameter 'n'
+            }else if(num == 3){
+                refrmode = 0;
+            //i1Pro lamp drift test & fix, original parameter 'l'
+            }else if(num == 4){
+                lampdrift = 1;
+            //original parameter 'L'
+            }else if(num == 5){
+                lampdrift = 2;
+            //i1pro2 test code,original parameter 'U'
+            }else if(num == 6){
+                uvmode = 1;
+            }else{
+                printf("parameter not recognised");
+                break;
+            }
+        //Serial port flow control,original parameter 'W'
+        }else if(stricmp(command, "serialPort") == 0){
+            char next_param[COMMAND_LENGTH];
+            strcpy(next_param, command_line[k + 1]);
+            int num = isNumber(next_param);
+            //original parameter 'n' or 'N'
+            if(num < 0 || num > 2){
+                printf("No parameter or parameter not recognised");
+                break;
+            //original parameter 'n' or 'N'
+            }else if(num == 0){
+                fc = fc_None;
+            //original parameter 'h' or 'H'
+            }else if(num == 1){
+                fc = fc_Hardware;
+            //original parameter 'x' or 'X'
+            }else if(num == 2){
+                fc = fc_XonXOff;
+            }
+            k++;
         }
         k++;
+    }
+    if(k < num_param){
+        printf("Please re-input");
+        *output = -1;
     }
 //     int ii = 0;
 //     bool flag = false;
