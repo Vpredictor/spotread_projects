@@ -724,56 +724,33 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
     /*New Process arguments*/
     //read in all parameters
-    char command_line[100][COMMAND_LENGTH] = {0};
-    int num_param = 0;
-    for(int ii = 0;ii < nrhs - 1;ii++){
+    int ii = 0;
+    while(ii < nrhs){
         char* command;
         mwSize command_size;
         int length = mxGetN(prhs[ii]);
-        if(length > COMMAND_LENGTH){
-            printf("The length of parameter is too long\n");
-            //todo
-            
-            break;
-        }
-        command_size = length*sizeof(mxChar);
+        command_size = length * sizeof(mxChar);
         command = (char*)mxMalloc(command_size);
         command = mxArrayToString(prhs[ii]);
-        strcpy(command_line[ii], command);
-        mxFree(command);
-        num_param++;
-    }
-    char* command;
-    mwSize command_size;
-    command_size = mxGetN(prhs[nrhs - 1])*sizeof(mxChar);
-    command = (char*)mxMalloc(command_size);
-    command = mxArrayToString(prhs[nrhs - 1]);
-    //以@开头的表示logfile
-    if(command[0] == '@'){
-        strcpy(outname, command + 1);
-        if((fp = fopen(outname, "w")) == NULL){
-            error("Unable to open logfile '%s' for writing\n", outname);
+        //printf("command=%s\n",command);
+        //判断是否有logfile
+        if(ii == (nrhs - 1) && isFile(command)){
+            strcpy(outname, command);
+            if((fp = fopen(outname, "w")) == NULL){
+                error("Unable to open logfile '%s' for writing\n", outname);
+            }
+            break;
         }
-    }else{
-        //否则就是普通参数
-        strcpy(command_line[nrhs - 1], command);
-        num_param++;
-    }
-    mxFree(command);
-    //process parameter
-    int k = 0;
-    while(k < num_param){
-        char command[COMMAND_LENGTH];
-        strcpy(command, command_line[k]);
         //original param 'D'
         if(stricmp(command, "printDebug") == 0){
             debug = 1;
-            char next_param[COMMAND_LENGTH];
-            strcpy(next_param, command_line[k + 1]);
-            int num = isNumber(next_param);
+            if(!mxIsNumeric(prhs[ii + 1])){
+                printf("Please input an integer");
+                break;
+            }
+            int num = (int)mxGetScalar(prhs[++ii]);
             if(num >= 0 && num <= 9){
                 debug = num;
-                k++;
             }else{
                 printf("wrong level for print debug diagnostics");
             }
@@ -789,19 +766,25 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
         }else if(stricmp(command, "showSpectrum") == 0){
             //default print spectrum for each reading
             pspec = 1;
-            char next_param[COMMAND_LENGTH];
-            strcpy(next_param, command_line[k + 1]);
-            if(strcmp(next_param, "1") == 0){
-                pspec = 1;
-            //plot spectrum for each reading
-            }else if(strcmp(next_param, "2") == 0){
-                pspec = 2;
+            if(mxIsNumeric(prhs[ii + 1])){
+                int num = (int)mxGetScalar(prhs[++ii]);
+                if(num == 1){
+                    pspec = 1;
+                //plot spectrum for each reading
+                }else if(num == 2){
+                    pspec = 2;
+                }else{
+                    printf("wrong parameter for 'showSpectrum'");
+                    break;
+                }
             }
         //COM port, original parameter 'c'
         }else if(stricmp(command, "comPort") == 0){
-            char next_param[COMMAND_LENGTH];
-            strcpy(next_param, command_line[k + 1]);
-            int num = isNumber(next_param);
+            if(!mxIsNumeric(prhs[ii + 1])){
+                printf("Please input an integer follow with %s", command);
+                break;
+            }
+            int num = (int)mxGetScalar(prhs[++ii]);
             if(num < 1 || num > 40){
                 printf("no parameter or parameter out of range\n");
             }else{
@@ -809,11 +792,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
             }
         //Display type,original parameter 'y'
         }else if(stricmp(command, "displayType") == 0){
-            char next_param[COMMAND_LENGTH];
-            strcpy(next_param, command_line[k + 1]);
-            int num = isNumber(next_param);
+            if(!mxIsNumeric(prhs[ii + 1])){
+                printf("Please input an integer follow with %s", command);
+                break;
+            }
+            int num = (int)mxGetScalar(prhs[++ii]);
             if(num < 0){
-                printf("No parameter\n");
+                printf("Parameter should be positive\n");
             }
             ditype = num;
             //todo
@@ -825,181 +810,246 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
         //Simulated instrument illumination (FWA),original param 'I'
         else if(stricmp(command, "setSimulatedInst") == 0){
             tillum_set = spec = 1;
-            char next_param[COMMAND_LENGTH];
-            strcpy(next_param, command_line[k + 1]);
-            if(stricmp(next_param, "A") == 0 || stricmp(next_param, "M0") == 0){
-                tillum = icxIT_A;
-            }else if(stricmp(next_param, "C") == 0){
-                tillum = icxIT_C;
-            }else if(stricmp(next_param, "D50") == 0 || stricmp(next_param, "M1") == 0){
-                tillum = icxIT_D50;
-            }else if(stricmp(next_param, "D50M2") == 0 || stricmp(next_param, "M2") == 0){
-                tillum = icxIT_D50M2;
-            }else if(stricmp(next_param, "D65") == 0){
-                tillum = icxIT_D65;
-            }else if(stricmp(next_param, "F5") == 0){
-                tillum = icxIT_F8;
-            }else if(stricmp(next_param, "F8") == 0){
-                tillum = icxIT_F8;
-            }else if(stricmp(next_param, "F10") == 0){
-                tillum = icxIT_F10;
-            }else{
-                //Assume it's a filename
-                inst_meas_type mt;
-                tillum = icxIT_custom;
-                if(read_xspect(&cust_tillum, &mt, next_param) != 0){
-                    usage("Failed to read custom target illuminant spectrum in file '%s'", next_param);
+            if(!mxIsNumeric(prhs[ii + 1])){
+                char* next_param;
+                mwSize param_size;
+                param_size = mxGetN(prhs[ii]) * sizeof(mxChar);
+                next_param = (char*)mxMalloc(param_size);
+                next_param = mxArrayToString(prhs[ii + 1]);
+                //if it is not a filename
+                if(!isFile(next_param)){
+                    usage("Parameter expected following -I");
+                }else{
+                    inst_meas_type mt;
+                    tillum = icxIT_custom;
+                    if(read_xspect(&cust_tillum, &mt, next_param) != 0){
+                        usage("Failed to read custom target illuminant spectrum in file '%s'", next_param);
+                    }
+                    if (mt != inst_mrt_none
+                        && mt != inst_mrt_emission
+                        && mt != inst_mrt_ambient
+                        && mt != inst_mrt_emission_flash
+                        && mt != inst_mrt_ambient_flash)
+                            error("Target illuminant '%s' is wrong measurement type",next_param);
+                    ++ii;
                 }
-                if (mt != inst_mrt_none
-                    && mt != inst_mrt_emission
-                    && mt != inst_mrt_ambient
-                    && mt != inst_mrt_emission_flash
-                    && mt != inst_mrt_ambient_flash)
-                        error("Target illuminant '%s' is wrong measurement type",next_param);
+                mxFree(next_param);
+            }else{
+                int num = (int)mxGetScalar(prhs[++ii]);
+                //original parameter 'A' or 'M0' 
+                if(num == 0){
+                    tillum = icxIT_A;
+                //original parameter 'C'
+                }else if(num == 1){
+                    tillum = icxIT_C;
+                //original parameter 'D50' or 'M1'
+                }else if(num == 2){
+                    tillum = icxIT_D50;
+                //original parameter 'D50M2' or 'M2'
+                }else if(num == 3){
+                    tillum = icxIT_D50M2;
+                //original parameter 'D65
+                }else if(num == 4){
+                    tillum = icxIT_D65;
+                //original parameter 'F5'
+                }else if(num == 5){
+                    tillum = icxIT_F5;
+                //original parameter 'F8'
+                }else if(num == 6){
+                    tillum = icxIT_F8;
+                //original parameter 'F10'
+                }else if(num == 7){
+                    tillum = icxIT_F10;
+                }else{
+                    printf("Parameter out of range");
+                    break;
+                }
             }
+            
         }
 #endif /*!SALONEINSTLIB*/
         //Spectral Illuminant type for XYZ computation,original parameter 'i'
         else if(stricmp(command, "spectralIlluminantType") == 0){
             illum_set = spec = 1;
-            char next_param[COMMAND_LENGTH];
-            strcpy(next_param, command_line[k + 1]);
-            if(stricmp(next_param, "A") == 0){
-                illum = icxIT_A;
-            }else if(stricmp(next_param, "C") == 0){
-                illum = icxIT_C;
-            }else if(stricmp(next_param, "D50") == 0){
-                illum = icxIT_D50;
-            }else if(stricmp(next_param, "D50M2") == 0){
-                illum = icxIT_D50M2;
-            }else if(stricmp(next_param, "D65") == 0){
-                illum = icxIT_D65;
-            }
-#ifndef SALONEINSTLIB
-            else if(stricmp(next_param, "F5") == 0){
-                illum = icxIT_F5;
-            }else if(stricmp(next_param, "F8") == 0){
-                illum = icxIT_F8;
-            }else if(stricmp(next_param, "F10") == 0){
-                illum = icxIT_F10;
-            }else{
+            if(!mxIsNumeric(prhs[ii + 1])){
                 //Assume it's a filename
-                inst_meas_type mt;
-                tillum = icxIT_custom;
-                if(read_xspect(&cust_tillum, &mt, next_param) != 0){
-                    usage("Unable to read custom illuminant file '%s'", next_param);
+                char* next_param;
+                mwSize param_size;
+                param_size = mxGetN(prhs[ii]) * sizeof(mxChar);
+                next_param = (char*)mxMalloc(param_size);
+                next_param = mxArrayToString(prhs[ii + 1]);
+                //if it is not a filename
+                if(!isFile(next_param)){
+                    usage("Parameter expected following -i");
+                }else{
+                    inst_meas_type mt;
+                    tillum = icxIT_custom;
+                    if(read_xspect(&cust_tillum, &mt, next_param) != 0){
+                        usage("Unable to read custom illuminant file '%s'", next_param);
+                    }
+                    if (mt != inst_mrt_none
+                        && mt != inst_mrt_emission
+                        && mt != inst_mrt_ambient
+                        && mt != inst_mrt_emission_flash
+                        && mt != inst_mrt_ambient_flash)
+                            error("Custom illuminant '%s' is wrong measurement type",next_param);
+                    ii++;
                 }
-                if (mt != inst_mrt_none
-                    && mt != inst_mrt_emission
-                    && mt != inst_mrt_ambient
-                    && mt != inst_mrt_emission_flash
-                    && mt != inst_mrt_ambient_flash)
-                        error("Custom illuminant '%s' is wrong measurement type",next_param);
-            }
+                
+            }else{
+                int num = mxGetScalar(prhs[++ii]);
+                //original parameter 'A'
+                if(num == 0){
+                    illum = icxIT_A;
+                //original parameter 'C'
+                }else if(num == 1){
+                    illum = icxIT_C;
+                //original parameter 'D50'
+                }else if(num == 2){
+                    illum = icxIT_D50;
+                //original parameter 'D50M2'
+                }else if(num == 3){
+                    illum = icxIT_D50M2;
+                //original parameter 'D65'
+                }else if(num == 4){
+                    illum = icxIT_D65;
+                }
+#ifndef SALONEINSTLIB
+                //original parameter 'F5'
+                else if(num == 5){
+                    illum = icxIT_F5;
+                //original parameter 'F8'
+                }else if(num == 6){
+                    illum = icxIT_F8;
+                //original parameter 'F10'
+                }else if(num == 7){
+                    illum = icxIT_F10;
+                }
 #else /*SALONEINSTLIB*/
-            else usage("Unrecognised illuminant '%s'", next_param);
+                else{
+                    printf("Parmaeter out of range");
+                    break;
+                }
 #endif
+            }
         }
         //Use -i illuminant for L*a*b conversion,original parameter 'w'
         else if(stricmp(command, "useIParam") == 0){
             labwpillum = 1;
         //Spectral Observer type,original param 'Q'
         }else if(stricmp(command, "chooseCIEObserver") == 0){
-            char next_param[COMMAND_LENGTH];
-            strcpy(next_param, command_line[k + 1]);
-            if (strcmp(next_param, "1931_2") == 0) {			/* Classic 2 degree */
-				obType = icxOT_CIE_1931_2;
-			} else if (strcmp(next_param, "1964_10") == 0) {	/* Classic 10 degree */
-				obType = icxOT_CIE_1964_10;
-			} else if (strcmp(next_param, "2012_2") == 0) {		/* Latest 2 degree */
-				obType = icxOT_CIE_2012_2;
-			} else if (strcmp(next_param, "2012_10") == 0) {	/* Latest 10 degree */
-				obType = icxOT_CIE_2012_10;
-			} 
-#ifndef SALONEINSTLIB
-            else if (strcmp(next_param, "1955_2") == 0) {		/* Stiles and Burch 1955 2 degree */
-				obType = icxOT_Stiles_Burch_2;
-			} else if (strcmp(next_param, "1978_2") == 0) {		/* Judd and Voss 1978 2 degree */
-				obType = icxOT_Judd_Voss_2;
-			} else if (strcmp(next_param, "shaw") == 0) {		/* Shaw and Fairchilds 1997 2 degree */
-				obType = icxOT_Shaw_Fairchild_2;
-			} 
-#endif /* !SALONEINSTLIB */
-            else {
-				obType = icxOT_custom;
+            if(!mxIsNumeric(prhs[ii + 1])){
+                char* next_param;
+                mwSize param_size;
+                param_size = mxGetN(prhs[ii]) * sizeof(mxChar);
+                next_param = (char*)mxMalloc(param_size);
+                next_param = mxArrayToString(prhs[++ii]);
+                obType = icxOT_custom;
 				if (read_cmf(custObserver, next_param) != 0)
 					usage(0,"Failed to read custom observer CMF from -Q file '%s'",next_param);
-			}
+            }else{
+                int num = (int)mxGetScalar(prhs[++ii]);
+                if (num == 0) {			/* Classic 2 degree */
+                    obType = icxOT_CIE_1931_2;
+                } else if (num == 1) {	/* Classic 10 degree */
+                    obType = icxOT_CIE_1964_10;
+                } else if (num == 2) {		/* Latest 2 degree */
+                    obType = icxOT_CIE_2012_2;
+                } else if (num == 3) {	/* Latest 10 degree */
+                    obType = icxOT_CIE_2012_10;
+                } 
+#ifndef SALONEINSTLIB
+                else if (num == 4) {		/* Stiles and Burch 1955 2 degree */
+                    obType = icxOT_Stiles_Burch_2;
+                } else if (num == 5) {		/* Judd and Voss 1978 2 degree */
+                    obType = icxOT_Judd_Voss_2;
+                } else if (num == 6) {		/* Shaw and Fairchilds 1997 2 degree */
+                    obType = icxOT_Shaw_Fairchild_2;
+                } 
+#endif /* !SALONEINSTLIB */
+            }
+            
         //original param 'e'=0,'eb'=1,'ew'=2,'t'=3,'p'=4,'pb'=5,'pw'=6,'a'=7,'f'=8,'r'=9,'rw'=10
         }else if(stricmp(command, "measureMode") == 0){
             //printf("measureMode\n");
-            char next_param[COMMAND_LENGTH];
-            strcpy(next_param, command_line[k + 1]);
-            int num = isNumber(next_param);
-            //printf("%d\n", num);
-            if(num < 0 || num > 10){
-                printf("wrong number for measureMode,please input from 0 to 10");
+            if(!mxIsNumeric(prhs[ii + 1])){
+                printf("Please input an integer");
                 break;
-            }else if(num == 0){
-                emiss = 1, trans = 0, tele = 0, ambient = 0;
-            }else if(num == 1){
-                emiss = 2, trans = 0, tele = 0, ambient = 0;
-            }else if(num == 2){
-                emiss = 3, trans = 0, tele = 0, ambient = 0;
-            }else if(num == 3){
-                emiss = 0, trans = 1, tele = 0, ambient = 0;
-            }else if(num == 4){
-                emiss = 1, trans = 0, tele = 1, ambient = 0;
-            }else if(num == 5){
-                emiss = 2, trans = 0, tele = 1, ambient = 0;
-            }else if(num == 6){
-                emiss = 3, trans = 0, tele = 1, ambient = 0;
-            }else if(num == 7){
-                if(trans) ambient = 1;
-                else{
-                    emiss = 1, trans = 0, tele = 0, ambient = 1;
+            }else{
+                int num = (int)mxGetScalar(prhs[++ii]);
+                //printf("%d\n", num);
+                if(num < 0 || num > 10){
+                    printf("wrong number for measureMode,please input from 0 to 10");
+                    break;
+                }else if(num == 0){
+                    emiss = 1, trans = 0, tele = 0, ambient = 0;
+                }else if(num == 1){
+                    emiss = 2, trans = 0, tele = 0, ambient = 0;
+                }else if(num == 2){
+                    emiss = 3, trans = 0, tele = 0, ambient = 0;
+                }else if(num == 3){
+                    emiss = 0, trans = 1, tele = 0, ambient = 0;
+                }else if(num == 4){
+                    emiss = 1, trans = 0, tele = 1, ambient = 0;
+                }else if(num == 5){
+                    emiss = 2, trans = 0, tele = 1, ambient = 0;
+                }else if(num == 6){
+                    emiss = 3, trans = 0, tele = 1, ambient = 0;
+                }else if(num == 7){
+                    if(trans) ambient = 1;
+                    else{
+                        emiss = 1, trans = 0, tele = 0, ambient = 1;
+                    }
+                }else if(num == 8){
+                    emiss = 1, trans = 0, tele = 0, ambient = 2;
+                }else if(num == 9){
+                    emiss = 0, trans = 0, tele = 0, ambient = 0;
+                }else if(num == 10){
+                    emiss = 0, trans = 0, tele = 0, ambient = 0, refwr = 1;
                 }
-            }else if(num == 8){
-                emiss = 1, trans = 0, tele = 0, ambient = 2;
-            }else if(num == 9){
-                emiss = 0, trans = 0, tele = 0, ambient = 0;
-            }else if(num == 10){
-                emiss = 0, trans = 0, tele = 0, ambient = 0, refwr = 1;
             }
-            k++;
+            
         //Filter configuration,original parameter 'F n' = 0, 'F p' = 1, 'F 6' = 2, 'F u' = 3
         }else if(stricmp(command, "filterConfig") == 0){
-            char next_param[COMMAND_LENGTH];
-            strcpy(next_param, command_line[k + 1]);
-            int num = isNumber(next_param);
-            if(num < 0 || num > 3){
-                printf("No parameter or no parameter recognised");
+            if(!mxIsNumeric(prhs[ii + 1])){
+                printf("Please input an integer");
                 break;
-            }else if(num == 0){
-                fe = inst_opt_filter_none;
-            }else if(num == 1){
-                fe = inst_opt_filter_pol;
-            }else if(num == 2){
-                fe = inst_opt_filter_D65;
-            }else if(num == 3){
-                fe = inst_opt_filter_UVCut;
+            }else{
+                int num = (int)mxGetScalar(prhs[++ii]);
+                if(num < 0 || num > 3){
+                    printf("No parameter or no parameter recognised");
+                    break;
+                }else if(num == 0){
+                    fe = inst_opt_filter_none;
+                }else if(num == 1){
+                    fe = inst_opt_filter_pol;
+                }else if(num == 2){
+                    fe = inst_opt_filter_D65;
+                }else if(num == 3){
+                    fe = inst_opt_filter_UVCut;
+                }
             }
-            k++;
+            
         //Extra filter compensation file,original parameter 'E'
         }else if(stricmp(command, "E") == 0){
-            char next_param[COMMAND_LENGTH];
-            strcpy(next_param, command_line[k + 1]);
+            char* next_param;
+            mwSize param_size;
+            param_size = mxGetN(prhs[ii]) * sizeof(mxChar);
+            next_param = (char*)mxMalloc(param_size);
+            next_param = mxArrayToString(prhs[ii + 1]);
             if(isFile(next_param)){
                 strcpy(filtername, next_param);
-                k++;
+                ii++;
             }else{
                 usage("Parameter expected following -E");
             }
         //XRGA conversion,original parameter 'A'
         }else if(stricmp(command, "xrgaConversion") == 0){
-            char next_param[COMMAND_LENGTH];
-            strcpy(next_param, command_line[k + 1]);
-            int num = isNumber(next_param);
+            if(!mxIsNumeric(prhs[ii + 1])){
+                printf("Please input an integer");
+                break;
+            }
+            int num = (int)mxGetScalar(prhs[++ii]);
             if(num < 0 || num > 3){
                 printf("No parameter or parameter not recognised");
                 break;
@@ -1016,12 +1066,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
             }else if(num == 3){
                 calstd = xcalstd_gmdi;
             }
-            k++;
         //Display,original parameter 'x','h','u'
         }else if(stricmp(command, "Display") == 0){
-            char next_param[COMMAND_LENGTH];
-            strcpy(next_param, command_line[k + 1]);
-            int num = isNumber(next_param);
+            if(!mxIsNumeric(prhs[ii + 1])){
+                printf("Please input an integer\n");
+                break;
+            }
+            int num = (int)mxGetScalar(prhs[++ii]);
             if(num < 0 || num > 2){
                 printf("No parameter or parameter not recognised");
                 break;
@@ -1031,14 +1082,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 #ifndef SALONEINSTLIB
                 doYuv = 0;
 #endif
-                k++;
             //Show Lch,original parameter 'h'
             }else if(num == 1){
                 doYxy = 0, doLCh = 1;
 #ifndef SALONEINSTLIB
                 doLCh = 0;
 #endif
-                k++;
             }
 #ifndef SALONEINSTLIB
             //Show Yuv,original parameter 'u'
@@ -1046,7 +1095,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
                 doYxy = 0;
                 doLCh = 0;
                 doYuv = 1;
-                k++;
             }
 #endif
         //Compute running average and standard deviation from ref.Also turns off clamping,original parameter 'V'
@@ -1064,15 +1112,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 #endif
         //Manual calibration,original parameter 'K'
         else if(stricmp(command, "manualCal") == 0){
-            char next_param[COMMAND_LENGTH];
-            strcpy(next_param, command_line[k + 1]);
-            int num = isNumber(next_param);
+            if(!mxIsNumeric(prhs[ii + 1])){
+                printf("Please input an integer\n");
+                break;
+            }
+            int num = (int)mxGetScalar(prhs[++ii]);
             if(num < 0 || num > 9){
                 printf("No parameter or parameter not recognised\n");
                 break;
             }else{
                 docalib = num;
-                k++;
             }
         //No auto calibration,original parameter 'N'
         }else if(stricmp(command, "nAutoCal") == 0){
@@ -1081,12 +1130,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
         }else if(stricmp(command, "calOrMeasure") == 0){
             doone = 1;
 #ifndef SALONEINSTLIB
-            char next_param[COMMAND_LENGTH];
-            strcpy(next_param, command_line[k + 1]);
+            char* next_param;
+            mwSize param_size;
+            param_size = mxGetN(prhs[ii]) * sizeof(mxChar);
+            next_param = (char*)mxMalloc(param_size);
+            next_param = mxArrayToString(prhs[ii + 1]);
             if(isFile(next_param)){
                 strncpy(outspname, next_param, MAXNAMEL - 1);outspname[MAXNAMEL - 1] = '\000';
                 doone = 2;
-                k++;
+                ii++;
             }
 #endif
         //High res mode,original parameter 'H'
@@ -1094,11 +1146,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
             highres = 1;
         //Colorimeter Correction Matrix or Colorimeter Calibration Spectral Samples,original parameter 'X'
         }else if(stricmp(command, "X") == 0){
-            char next_param[COMMAND_LENGTH];
-            strcpy(next_param, command_line[k + 1]);
+            char* next_param;
+            mwSize param_size;
+            param_size = mxGetN(prhs[ii]) * sizeof(mxChar);
+            next_param = (char*)mxMalloc(param_size);
+            next_param = mxArrayToString(prhs[ii + 1]);
             if(isFile(next_param)){
                 strcpy(ccxxname, next_param);
-                k++;
+                ii++;
             }else{
                 usage("Parameter expected after -K");
             }
@@ -1106,22 +1161,28 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 #ifndef SALONEINSTLIB
         //Present reference spectrum,original parameter 'R'
         else if(stricmp(command, "presetReferenceSpect") == 0){
-            char next_param[COMMAND_LENGTH];
-            strcpy(next_param, command_line[k + 1]);
+            char* next_param;
+            mwSize param_size;
+            param_size = mxGetN(prhs[ii]) * sizeof(mxChar);
+            next_param = (char*)mxMalloc(param_size);
+            next_param = mxArrayToString(prhs[ii + 1]);
             if(isFile(next_param)){
                 strcpy(psetrefname, next_param);
-                k++;
+                ii++;
             }else{
                 usage("-R fname.sp syntax incorrect");
             }
         }
 #endif
         //Extra flags,original parameter 'Y'
+        //to change
         else if(stricmp(command, "extraFlags") == 0){
-            char next_param[COMMAND_LENGTH];
-            strcpy(next_param, command_line[k + 1]);
-            int num = isNumber(next_param);
-            if(num < 0){
+            if(!mxIsNumeric(prhs[ii + 1])){
+                char* next_param;
+                mwSize param_size;
+                param_size = mxGetN(prhs[ii]) * sizeof(mxChar);
+                next_param = (char*)mxMalloc(param_size);
+                next_param = mxArrayToString(prhs[ii + 1]);
                 if(next_param[0] == 'R' || next_param[0] == 'r'){
                     //to change
                     if(next_param[1] != ':') usage("-Y R:rate syntax incorrect");
@@ -1140,36 +1201,42 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
                     printf("No parameter or parameter not recognised");
                     break;
                 }
-            //original parameter 'A'
-            }else if(num == 0){
-                nadaptive = 1;
-            //original parameter 'a'
-            }else if(num == 1){
-                averagemode = 1;
-            //original parameter 'r'
-            }else if(num == 2){
-                refrmode = 1;
-            //original parameter 'n'
-            }else if(num == 3){
-                refrmode = 0;
-            //i1Pro lamp drift test & fix, original parameter 'l'
-            }else if(num == 4){
-                lampdrift = 1;
-            //original parameter 'L'
-            }else if(num == 5){
-                lampdrift = 2;
-            //i1pro2 test code,original parameter 'U'
-            }else if(num == 6){
-                uvmode = 1;
             }else{
-                printf("parameter not recognised");
-                break;
+                int num = (int)mxGetScalar(prhs[++ii]);
+                //original parameter 'A'
+                if(num == 0){
+                    nadaptive = 1;
+                //original parameter 'a'
+                }else if(num == 1){
+                    averagemode = 1;
+                //original parameter 'r'
+                }else if(num == 2){
+                    refrmode = 1;
+                //original parameter 'n'
+                }else if(num == 3){
+                    refrmode = 0;
+                //i1Pro lamp drift test & fix, original parameter 'l'
+                }else if(num == 4){
+                    lampdrift = 1;
+                //original parameter 'L'
+                }else if(num == 5){
+                    lampdrift = 2;
+                //i1pro2 test code,original parameter 'U'
+                }else if(num == 6){
+                    uvmode = 1;
+                }else{
+                    printf("parameter out of range");
+                    break;
+                }
             }
+            
         //Serial port flow control,original parameter 'W'
         }else if(stricmp(command, "serialPort") == 0){
-            char next_param[COMMAND_LENGTH];
-            strcpy(next_param, command_line[k + 1]);
-            int num = isNumber(next_param);
+            if(!mxIsNumeric(prhs[ii + 1])){
+                printf("Please input an integer\n");
+                break;
+            }
+            int num = (int)mxGetScalar(prhs[++ii]);
             //original parameter 'n' or 'N'
             if(num < 0 || num > 2){
                 printf("No parameter or parameter not recognised");
@@ -1184,14 +1251,19 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
             }else if(num == 2){
                 fc = fc_XonXOff;
             }
-            k++;
         }
-        k++;
+        mxFree(command);
+        ii++;
     }
-    if(k < num_param){
-        printf("Please re-input");
-        *output = -1;
+    if(ii < nrhs){
+        printf("Please re-input\n");
+        exit(1);
     }
+    
+    
+    
+    
+    
 //     int ii = 0;
 //     bool flag = false;
 //     while(ii < 256 && command[ii]){
