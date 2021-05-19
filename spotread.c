@@ -748,8 +748,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
             usage("Usage requested");
         //original param 'v'
         }else if(stricmp(command, "verboseMode") == 0){
-            verb = 1;
-            g_log->verb = verb;
+            if(!mxIsNumeric(prhs[ii + 1])){
+                printf("Please input an integer");
+                break;
+            }
+            int num = (int)mxGetScalar(prhs[++ii]);
+            if(num == 1){
+                verb = 1;
+                g_log->verb = verb;
+            }
         //original param 's' or 'S', default 's',
         }else if(stricmp(command, "showSpectrum") == 0){
             //default print spectrum for each reading
@@ -923,7 +930,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
         }
         //Use -i illuminant for L*a*b conversion,original parameter 'w'
         else if(stricmp(command, "useIParam") == 0){
-            labwpillum = 1;
+            if(!mxIsNumeric(prhs[ii + 1])){
+                printf("Please input an integer");
+                break;
+            }
+            int num = (int)mxGetScalar(prhs[++ii]);
+            if(num == 1){
+                labwpillum = 1;
+            }
         //Spectral Observer type,original param 'Q'
         }else if(stricmp(command, "chooseCIEObserver") == 0){
             if(!mxIsNumeric(prhs[ii + 1])){
@@ -1087,15 +1101,36 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 #endif
         //Compute running average and standard deviation from ref.Also turns off clamping,original parameter 'V'
         }else if(stricmp(command, "computeAvgAndDev") == 0){
-            refstats = 1;
+            if(!mxIsNumeric(prhs[ii + 1])){
+                printf("Please input an integer\n");
+                break;
+            }
+            int num = (int)mxGetScalar(prhs[++ii]);
+            if(num == 1){
+                refstats = 1;
+            }
         }
 #ifndef SALONEINSTLIB
         //Show CCT etc,original parameter 'T'
         else if(stricmp(command, "showCCT") == 0){
-            doCCT = 1;
+            if(!mxIsNumeric(prhs[ii + 1])){
+                printf("Please input an integer\n");
+                break;
+            }
+            int num = (int)mxGetScalar(prhs[++ii]);
+            if(num == 1){
+                doCCT = 1;
+            }
         //Show densities,original parameter 'd'
         }else if(stricmp(command, "showDensities") == 0){
-            doDensity = 1;
+            if(!mxIsNumeric(prhs[ii + 1])){
+                printf("Please input an integer\n");
+                break;
+            }
+            int num = (int)mxGetScalar(prhs[++ii]);
+            if(num == 1){
+                doDensity = 1;
+            }
         }
 #endif
         //Manual calibration,original parameter 'K'
@@ -1113,7 +1148,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
             }
         //No auto calibration,original parameter 'N'
         }else if(stricmp(command, "nAutoCal") == 0){
-            nocal = 1;
+            if(!mxIsNumeric(prhs[ii + 1])){
+                printf("Please input an integer\n");
+                break;
+            }
+            int num = (int)mxGetScalar(prhs[++ii]);
+            if(num == 1){
+                nocal = 1;
+            }
         //Do one cal. or measure and exit,original parameter 'O'
         }else if(stricmp(command, "calOrMeasure") == 0){
             doone = 1;
@@ -1131,7 +1173,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 #endif
         //High res mode,original parameter 'H'
         }else if(stricmp(command, "highResMode") == 0){
-            highres = 1;
+            if(!mxIsNumeric(prhs[ii + 1])){
+                printf("Please input an integer\n");
+                break;
+            }
+            int num = (int)mxGetScalar(prhs[++ii]);
+            if(num == 1){
+                highres = 1;
+            }
         //Colorimeter Correction Matrix or Colorimeter Calibration Spectral Samples,original parameter 'X'
         }else if(stricmp(command, "X") == 0){
             char* next_param;
