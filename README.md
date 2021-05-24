@@ -24,7 +24,6 @@ mex -R2018a -g spotread.c -L./ -linst -linstapp -lxicc -lgamut -lrspl -lcgats -l
 |'showCCT',switch|Show CCT etc,switch is an integer range from 0 to 1,default is 0|switch:<br>**0**:off<br>**1**:on|
 |'showDensities',switch|Show densities,switch is an integer range from 0 to 1,default is 0|switch:<br>**0**:off<br>**1**:on|
 |'nAutoCal',switch|Disable auto calibration of instrument,switch is an integer range from 0 to 1,default is 0|switch:<br>**0**:off<br>**1**:on|
-|'calOrMeasure',param|Do one cal. or measure and exit,param is a file name|None|
 |'highResMode',switch|High res mode,switch is an integer range from 0 to 1,default is 0|switch:<br>**0**:off<br>**1**:on|
 |'X',param|Colorimeter Correction Matrix or Colorimeter Calibration Spectral Samples,param is a file name|None|
 |'presetReferenceSpect',param|Present reference spectrum,param is a file name|None|

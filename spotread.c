@@ -615,7 +615,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int debug = 0;
 	int docalib = 0;				/* Do a manual instrument calibration */
 	int nocal = 0;					/* Disable auto calibration */
-	int doone = 0;					/* 1 = Do one calibration or measure and exit */
+	int doone = 1;					/* 1 = Do one calibration or measure and exit */
 									/* 2 = + also save result to outspname */
 	int pspec = 0;					/* 1 = Print out the spectrum for each reading */
 									/* 2 = Plot out the spectrum for each reading */
