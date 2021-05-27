@@ -19,7 +19,7 @@ mex -R2018a -g spotread.c -L./ -linst -linstapp -lxicc -lgamut -lrspl -lcgats -l
 |'filterConfig',config|Set filter configuration,config is an integer range from 0 to 3|**0**:None<br> **1**:Polarising filter<br> **2**:D65<br> **3**:U.V. Cut|
 |'E',file|Extra filter compensation file,file is a file name|None|
 |'xrgaConversion',param|XRGA conversion,param is an integer range from 0 to 3|**0**:N<br> **1**:A<br> **2**:X<br> **3**:G|
-|'Display',param|param is an integer range from 0 to 3,default is 0|**0**:Display Lab<br> **1**:Display Yxy instead Lab<br> **2**:Display Lch instead of Lab<br> **3**:Display Yuv instead of Lab|
+|'Display',param|param is an integer range from 0 to 2|**0**:Display Yxy instead Lab<br> **1**:Display Lch instead of Lab<br> **2**:Display Yuv instead of Lab|
 |'computeAvgAndDev',switch|Compute running average and standard deviation from ref.Also turns off clamping|switch:<br>**0**:off<br>**1**:on|
 |'showCCT',switch|Show CCT etc|switch:<br>**0**:off<br>**1**:on|
 |'showDensities',switch|Show densities|switch:<br>**0**:off<br>**1**:on|

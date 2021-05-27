@@ -1061,17 +1061,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
                 break;
             }
             int num = (int)mxGetScalar(prhs[++ii]);
-            if(num < 0 || num > 3){
+            if(num < 0 || num > 2){
                 printf("No parameter or parameter not recognised");
                 break;
             //Show Yxy,original parameter 'x'
-            }else if(num == 1){
+            }else if(num == 0){
                 doYxy = 1, doLCh = 0;
 #ifndef SALONEINSTLIB
                 doYuv = 0;
 #endif
             //Show Lch,original parameter 'h'
-            }else if(num == 2){
+            }else if(num == 1){
                 doYxy = 0, doLCh = 1;
 #ifndef SALONEINSTLIB
                 doLCh = 0;
@@ -1079,7 +1079,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
             }
 #ifndef SALONEINSTLIB
             //Show Yuv,original parameter 'u'
-            else if(num == 3){
+            else if(num == 2){
                 doYxy = 0;
                 doLCh = 0;
                 doYuv = 1;
