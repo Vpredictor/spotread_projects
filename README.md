@@ -20,10 +20,10 @@ mex -R2018a -g spotread.c -L./ -linst -linstapp -lxicc -lgamut -lrspl -lcgats -l
 |'E',file|Extra filter compensation file,file is a file name|None|
 |'xrgaConversion',param|XRGA conversion,param is an integer range from 0 to 3|**0**:N<br> **1**:A<br> **2**:X<br> **3**:G|
 |'Display',param|param is an integer range from 0 to 2|**0**:Display Yxy instead Lab<br> **1**:Display Lch instead of Lab<br> **2**:Display Yuv instead of Lab|
-|'computeAvgAndDev',switch|Compute running average and standard deviation from ref.Also turns off clamping|switch:<br>**0**:off<br>**1**:on|
-|'showCCT',switch|Show CCT etc|switch:<br>**0**:off<br>**1**:on|
-|'showDensities',switch|Show densities|switch:<br>**0**:off<br>**1**:on|
-|'nAutoCal',switch|Disable auto calibration of instrument|switch:<br>**0**:off<br>**1**:on|
+|'computeAvgAndDev'|Compute running average and standard deviation from ref.Also turns off clamping|None|
+|'showCCT'|Show CCT etc|None|
+|'showDensities'|Show densities|None|
+|'nAutoCal'|Disable auto calibration of instrument|None|
 |'calOrMeasure',param|Do one cal. or measure and exit,param is a file name|None|
 |'highResMode'|High res mode|None|
 |'X',param|Colorimeter Correction Matrix or Colorimeter Calibration Spectral Samples,param is a file name|None|
