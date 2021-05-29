@@ -621,7 +621,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int debug = 0;
 	int docalib = 0;				/* Do a manual instrument calibration */
 	int nocal = 0;					/* Disable auto calibration */
-	int doone = 0;					/* 1 = Do one calibration or measure and exit */
+	int doone = 1;					/* 1 = Do one calibration or measure and exit */
 									/* 2 = + also save result to outspname */
 	int pspec = 0;					/* 1 = Print out the spectrum for each reading */
 									/* 2 = Plot out the spectrum for each reading */
@@ -757,11 +757,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     //process parameter
     int k = 0;
     while(k < nrhs){
-//         char command[COMMAND_LENGTH];
-//         strcpy(command, command_line[k]);
         mwSize command_size = mxGetN(prhs[k])*sizeof(mxChar);
         char* command = (char*)mxMalloc(command_size);
-        command = mxArrayToString(prhs[nrhs - 1]);
+        command = mxArrayToString(prhs[k]);
+        //printf("%s\n", command);
         //判断是否有logfile
         if(k == (nrhs - 1) && isFile(command)){
             strcpy(outname,command);
@@ -1180,11 +1179,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
                 if(num < 0 || num > 3){
                     printf("No parameter or parameter not recognised");
                     break;
-                }else if(num == 0){
-                    //do not do anything
-                    ;
+                }
+                //if num == 0,do not do anything
                 //Show Yxy,original parameter 'x'
-                }else if(num == 1){
+                else if(num == 1){
                     doYxy = 1, doLCh = 0;
 #ifndef SALONEINSTLIB
                     doYuv = 0;

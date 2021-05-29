@@ -25,7 +25,6 @@ mex -R2018a -g spotread.c -L./ -linst -linstapp -lxicc -lgamut -lrspl -lcgats -l
 |'showDensities'|Show densities|
 |'manualCal',param|manual calibration,param range from 0 to 9|
 |'nAutoCal'|No auto calibration|
-|'calOrMeasure','param'|Do one cal. or measure and exit,param is a file name|
 |'highResMode'|High res mode|
 |'X','param'|Colorimeter Correction Matrix or Colorimeter Calibration Spectral Samples,param is a file name|
 |'presetReferenceSpect','param'|Present reference spectrum,param is a file name|
