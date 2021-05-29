@@ -2,7 +2,7 @@
 ## compile command
 mex -R2018a -g spotread.c -L./ -linst -linstapp -lxicc -lgamut -lrspl -lcgats -licc -lplot -lvrml -lccast -laxtls -lyajl -lrender -ltiff -ljpeg -lpng -lz -lui -lnum -lucmm -ljcnf -lconv
 
-## **usage: spotread(['options'],[logfile])**
+## **usage: \[status\[,result\]\]=spotread(['options'],[logfile])**
 |'options'|'meaning'|
 |:-:|:-:|
 |'printDebug',[level]|Print debug diagnostics to stderr ,level is an integer range from 0 to 9,default is 1|

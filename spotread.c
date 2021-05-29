@@ -601,12 +601,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 //     }
     
     //声明变量
-    // input matrix
-    //char command[256]={0};
-    //size of input matrix
-    //int ncols;
-    // output matrix
-    mxInt32 *output;
+    mxInt32 *status;
     //读取输入数据
     
 //     buflen = (nrhs * 5) + 1;
@@ -618,8 +613,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     //ncols = mxGetM(prhs[0]);
     //输出数据
     plhs[0] = mxCreateNumericMatrix(1,1, mxINT32_CLASS, mxREAL);
-    //output = (int*)mxGetData(plhs[0]);
-    output = mxGetInt32s(plhs[0]);
+    status = mxGetInt32s(plhs[0]);
     
 	int i, j;
 	int fa, nfa, mfa;				/* current argument we're looking at */
@@ -1416,7 +1410,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
         mxFree(command);
     }
     if(k < nrhs){
-        *output = -1;
+        *status = -1;
         mexErrMsgTxt("Please re-input");
     }
 //     int ii = 0;
@@ -1993,7 +1987,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		       "or wrong instrument or bad configuration!\n"
 		       "('%s' + '%s')\n", it->inst_interp_error(it, rv), it->interp_error(it, rv));
 		it->del(it);
-		*output = -1;
+		*status = -1;
 	}
 
 #ifdef DEBUG
@@ -2009,7 +2003,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		if ((rv = it->get_set_opt(it, inst_opt_set_filter, fe)) != inst_ok) {
 			printf("Setting filter configuration not supported by instrument\n");
 			it->del(it);
-			*output = -1;
+			*status = -1;
 		}
 	}
 
@@ -2018,7 +2012,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		printf("Instrument initialisation failed with '%s' (%s)!\n",
 		      it->inst_interp_error(it, rv), it->interp_error(it, rv));
 		it->del(it);
-		*output = -1;
+		*status = -1;
 	}
 	
 	/* Check i1Pro lamp drift, and remediate if it is too large */
@@ -2179,7 +2173,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					printf("Need transmission spot (alt) capability,\n");
 					printf("and instrument doesn't support it\n");
 					it->del(it);
-					*output = -1;
+					*status = -1;
 				}
 			/* Normal geometry - diffuce/90 */
 			} else {
@@ -2187,7 +2181,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					printf("Need transmission spot capability,\n");
 					printf("and instrument doesn't support it\n");
 					it->del(it);
-					*output = -1;
+					*status = -1;
 				}
 			}
 
@@ -2195,7 +2189,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			if (it->check_mode(it, inst_mode_emis_ambient) != inst_ok) {
 				printf("Requested ambient light capability,\n");
 				printf("and instrument doesn't support it.\n");
-				*output = -1;
+				*status = -1;
 			} else {
 				if (verb) {
 					printf("Please make sure the instrument is fitted with\n");
@@ -2208,7 +2202,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				printf("Requested ambient flash capability,\n");
 				printf("and instrument doesn't support it.\n");
 				it->del(it);
-				*output = -1;
+				*status = -1;
 			} else {
 				if (verb) {
 					printf("Please make sure the instrument is fitted with\n");
@@ -2230,14 +2224,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					printf("Need telephoto spot capability\n");
 					printf("and instrument doesn't support it\n");
 					it->del(it);
-					*output = -1;
+					*status = -1;
 				}
 			} else {
 				if (it->check_mode(it, inst_mode_emis_spot) != inst_ok) {
 					printf("Need emissive spot capability\n");
 					printf("and instrument doesn't support it\n");
 					it->del(it);
-					*output = -1;
+					*status = -1;
 				}
 			}
 
@@ -2259,7 +2253,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				printf("Need reflection spot reading capability,\n");
 				printf("and instrument doesn't support it\n");
 				it->del(it);
-				*output = -1;
+				*status = -1;
 			}
 		}
 
@@ -2275,7 +2269,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				if ((rv = it->set_disptype(it, ix)) != inst_ok) {
 					printf("Setting display type ix %d not supported by instrument\n",ix);
 					it->del(it);
-					*output = -1;
+					*status = -1;
 				}
 			} else
 				printf("Display/calibration type ignored - instrument doesn't support it\n");
@@ -2286,7 +2280,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			printf("Non standard observer needs spectral information or CCSS capability\n");
 			printf("and instrument doesn't support either.\n");
 			it->del(it);
-			*output = -1;
+			*status = -1;
 		}
 
 		/* If we don't have CCSS then we need spectral for non-standard observer */
@@ -2298,7 +2292,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			printf("Need spectral information for custom illuminant or observer\n");
 			printf("and instrument doesn't support it\n");
 			it->del(it);
-			*output = -1;
+			*status = -1;
 		}
 
 		/* Disable initial calibration of machine if selected */
@@ -2370,7 +2364,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			if (!IMODETST(cap, inst_mode_ref_uv)) {
 				printf("UV measurement mode requested, but instrument doesn't support this mode\n");
 				it->del(it);
-				*output = -1;
+				*status = -1;
 			}
 			mode  |= inst_mode_ref_uv;
 			smode |= inst_mode_ref_uv;
@@ -2380,7 +2374,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			printf("\nSetting instrument mode failed with error :'%s' (%s)\n",
 		     	       it->inst_interp_error(it, rv), it->interp_error(it, rv));
 			it->del(it);
-			*output = -1;
+			*status = -1;
 		}
 		it->capabilities(it, &cap, &cap2, &cap3);
 
@@ -2413,7 +2407,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			if ((rv = it->get_set_opt(it, inst_opt_set_xcalstd, calstd)) != inst_ok) {
 				printf("Setting calibration standard not supported by instrument\n");
 				it->del(it);
-				*output = -1;
+				*status = -1;
 			}
 		}
 
@@ -2425,20 +2419,20 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			if ((cx = new_ccmx()) == NULL) {
 				printf("\nnew_ccmx failed\n");
 				it->del(it);
-				*output = -1;
+				*status = -1;
 			}
 			if (cx->read_ccmx(cx,ccxxname) == 0) {
 				if ((cap2 & inst2_ccmx) == 0) {
 					printf("\nInstrument doesn't have Colorimeter Correction Matrix capability\n");
 					it->del(it);
-					*output = -1;
+					*status = -1;
 				}
 				if ((rv = it->col_cor_mat(it, cx->dtech, cx->cc_cbid, cx->matrix)) != inst_ok) {
 					printf("\nSetting Colorimeter Correction Matrix failed with error :'%s' (%s)\n",
 				     	       it->inst_interp_error(it, rv), it->interp_error(it, rv));
 					cx->del(cx);
 					it->del(it);
-					*output = -1;
+					*status = -1;
 				}
 				cx->del(cx);
 
@@ -2450,34 +2444,34 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				if ((cs = new_ccss()) == NULL) {
 					printf("\nnew_ccss failed\n");
 					it->del(it);
-					*output = -1;
+					*status = -1;
 				}
 				if (cs->read_ccss(cs,ccxxname)) {
 					printf("\nReading CCMX/CCSS File '%s' failed with error %d:'%s'\n",
 				     	       ccxxname, cs->errc, cs->err);
 					cs->del(cs);
 					it->del(it);
-					*output = -1;
+					*status = -1;
 				}
 				if ((cap2 & inst2_ccss) == 0) {
 					printf("\nInstrument doesn't have Colorimeter Calibration Spectral Sample capability\n");
 					cs->del(cs);
 					it->del(it);
-					*output = -1;
+					*status = -1;
 				}
 				if ((rv = it->get_set_opt(it, inst_opt_set_ccss_obs, obType, custObserver)) != inst_ok) {
 					printf("\nSetting CCS Observer failed with error :'%s' (%s)\n",
 				     	       it->inst_interp_error(it, rv), it->interp_error(it, rv));
 					cs->del(cs);
 					it->del(it);
-					*output = -1;
+					*status = -1;
 				}
 				if ((rv = it->col_cal_spec_set(it, cs->dtech, cs->samples, cs->no_samp)) != inst_ok) {
 					printf("\nSetting Colorimeter Calibration Spectral Samples failed with error :'%s' (%s)\n",
 				     	       it->inst_interp_error(it, rv), it->interp_error(it, rv));
 					cs->del(cs);
 					it->del(it);
-					*output = -1;
+					*status = -1;
 				}
 				ccssset = 1;
 				cs->del(cs);
@@ -2494,7 +2488,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					printf("\nSetting instrument refresh rate to %f Hz failed with error :'%s' (%s)\n",
 				     	       refrate, it->inst_interp_error(it, rv), it->interp_error(it, rv));
 					it->del(it);
-					*output = -1;
+					*status = -1;
 				}
 			}
 		}
@@ -2505,7 +2499,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				printf("\nSetting CCSS Observer failed with error :'%s' (%s)\n",
 			     	       it->inst_interp_error(it, rv), it->interp_error(it, rv));
 				it->del(it);
-				*output = -1;
+				*status = -1;
 			}
 		}
 
@@ -2521,7 +2515,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				printf("\nGetting instrument battery status failed with error :'%s' (%s)\n",
 		       	       it->inst_interp_error(it, rv), it->interp_error(it, rv));
 				it->del(it);
-				*output = -1;
+				*status = -1;
 			}
 			printf("The battery charged level is %.0f%%\n",batstat * 100.0);
 		}
@@ -2543,13 +2537,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		} else {
 			printf("\nNo reasonable trigger mode avilable for this instrument\n");
 			it->del(it);
-			*output = -1;
+			*status = -1;
 		}
 		if ((rv = it->get_set_opt(it, trigmode)) != inst_ok) {
 			printf("\nSetting trigger mode failed with error :'%s' (%s)\n",
 	       	       it->inst_interp_error(it, rv), it->interp_error(it, rv));
 			it->del(it);
-			*output = -1;
+			*status = -1;
 		}
 
 		/* Setup the keyboard trigger to return our commands */
@@ -2581,7 +2575,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			printf("\nGetting reference white tile spectrum failed with error :'%s' (%s)\n",
 	       	       it->inst_interp_error(it, rv), it->interp_error(it, rv));
 			it->del(it);
-			*output = -1;
+			*status = -1;
 		}
 
 		if (write_xspect(wtilename, inst_mrt_reflective, &sp) != 0)
@@ -2671,7 +2665,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			if (ierror(it, rv)) {
 				it->xy_clear(it);
 				it->del(it);
-				*output = -1;
+				*status = -1;
 			}
 		}
 	}
@@ -2699,7 +2693,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				printf("\nGetting min_int)time failed with error :'%s' (%s)\n",
 		       	       it->inst_interp_error(it, rv), it->interp_error(it, rv));
 				it->del(it);
-				*output = -1;
+				*status = -1;
 			}
 			printf("Current min int time = %f\n",cval);
 			
@@ -2711,14 +2705,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					printf("\nSetting min_int_time failed with error :'%s' (%s)\n",
 			       	       it->inst_interp_error(it, rv), it->interp_error(it, rv));
 					it->del(it);
-					*output = -1;
+					*status = -1;
 				}
 			
 				if ((rv = it->get_set_opt(it, inst_opt_get_min_int_time, &cval)) != inst_ok) {
 					printf("\nGetting min_int)time failed with error :'%s' (%s)\n",
 			       	       it->inst_interp_error(it, rv), it->interp_error(it, rv));
 					it->del(it);
-					*output = -1;
+					*status = -1;
 				}
 			
 				printf("Check current min int time = %f\n",cval);
@@ -2735,7 +2729,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				printf("\nGetting saved reading status failed with error :'%s' (%s)\n",
 		       	       it->inst_interp_error(it, rv), it->interp_error(it, rv));
 				it->del(it);
-				*output = -1;
+				*status = -1;
 			}
 			if (sv & inst_stat_savdrd_spot)
 				savdrd = 1;
@@ -2753,7 +2747,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				printf("\nSetting instrument mode failed with error :'%s' (%s)\n",
 			     	       it->inst_interp_error(it, ev), it->interp_error(it, ev));
 				it->del(it);
-				*output = -1;
+				*status = -1;
 			}
 			it->capabilities(it, &cap, &cap2, &cap3);
 
@@ -2766,7 +2760,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				printf("\nSetting trigger mode failed with error :'%s' (%s)\n",
 		       	       it->inst_interp_error(it, ev), it->interp_error(it, ev));
 				it->del(it);
-				*output = -1;
+				*status = -1;
 			}
 
 			printf("\nThere are saved spot readings in the instrument.\n");
@@ -2791,7 +2785,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				printf("\nSetting trigger mode failed with error :'%s' (%s)\n",
 		       	       it->inst_interp_error(it, ev), it->interp_error(it, ev));
 				it->del(it);
-				*output = -1;
+				*status = -1;
 			}
 
 			/* Set N and n to be a trigger */
@@ -2803,7 +2797,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				printf("\nSetting instrument mode failed with error :'%s' (%s)\n",
 			     	       it->inst_interp_error(it, ev), it->interp_error(it, ev));
 				it->del(it);
-				*output = -1;
+				*status = -1;
 			}
 			it->capabilities(it, &cap, &cap2, &cap3);
 
@@ -3101,7 +3095,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				printf("\nToggling target failed with error :'%s' (%s)\n",
 		       	       it->inst_interp_error(it, ev), it->interp_error(it, ev));
 				it->del(it);
-				*output = -1;
+				*status = -1;
 			}
 			--ix;
 			continue;
@@ -3115,7 +3109,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 						printf("\nSetting std res mode failed with error :'%s' (%s)\n",
 				       	       it->inst_interp_error(it, ev), it->interp_error(it, ev));
 						it->del(it);
-						*output = -1;
+						*status = -1;
 					}
 					highres = 0;
 					if (pspec) 
@@ -3126,7 +3120,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 						printf("\nSetting high res mode failed with error :'%s' (%s)\n",
 				       	       it->inst_interp_error(it, ev), it->interp_error(it, ev));
 						it->del(it);
-						*output = -1;
+						*status = -1;
 					}
 					highres = 1;
 					if (pspec) 
@@ -3659,25 +3653,61 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 			if (ambient && (cap2 & inst2_ambient_mono)) {
 				printf("\n Result is Y: %f, L*: %f\n",XYZ[1], Lab[0]);
+                plhs[1] = mxCreateNumericMatrix(1, 2, mxDOUBLE_CLASS, mxREAL);
+                double tmp[2] = {XYZ[1], Lab[0]};
+                double* out = mxMalloc(2 * sizeof(double));
+                for(int idx = 0; idx < 2; idx++){
+                    out[idx] = tmp[idx];
+                }
+                mxSetDoubles(plhs[1], out);
 			} else {
 				if (doYxy) {
 					/* Print out the XYZ and Yxy */
 					printf("\n Result is XYZ: %f %f %f, Yxy: %f %f %f\n",
 					XYZ[0], XYZ[1], XYZ[2], Yxy[0], Yxy[1], Yxy[2]);
+                    plhs[1] = mxCreateNumericMatrix(1, 6, mxDOUBLE_CLASS, mxREAL);
+                    double tmp[6] = {XYZ[0], XYZ[1], XYZ[2], Yxy[0], Yxy[1], Yxy[2]};
+                    double* out = mxMalloc(6 * sizeof(double));
+                    for(int idx = 0; idx < 6; idx++){
+                        out[idx] = tmp[idx];
+                    }
+                    mxSetDoubles(plhs[1], out);
 				} else if (doLCh) {
 					/* Print out the XYZ and LCh */
 					printf("\n Result is XYZ: %f %f %f, LCh: %f %f %f\n",
 					XYZ[0], XYZ[1], XYZ[2], LCh[0], LCh[1], LCh[2]);
-#ifndef SALONEINSTLIB
-				} else if (doYuv) {
+                    plhs[1] = mxCreateNumericMatrix(1, 6, mxDOUBLE_CLASS, mxREAL);
+                    double tmp[6] = {XYZ[0], XYZ[1], XYZ[2], LCh[0], LCh[1], LCh[2]};
+                    double* out = mxMalloc(6 * sizeof(double));
+                    for(int idx = 0; idx < 6; idx++){
+                        out[idx] = tmp[idx];
+                    }
+                    mxSetDoubles(plhs[1], out);
+				} 
+#ifndef SALONEINSTLIB                
+                else if (doYuv) {
 					/* Print out the XYZ and Yuv */
 					printf("\n Result is XYZ: %f %f %f, Yuv: %f %f %f\n",
 					XYZ[0], XYZ[1], XYZ[2], Yuv[0], Yuv[1], Yuv[2]);
+                    plhs[1] = mxCreateNumericMatrix(1, 6, mxDOUBLE_CLASS, mxREAL);
+                    double tmp[6] = {XYZ[0], XYZ[1], XYZ[2], Yuv[0], Yuv[1], Yuv[2]};
+                    double* out = mxMalloc(6 * sizeof(double));
+                    for(int idx = 0; idx < 6; idx++){
+                        out[idx] = tmp[idx];
+                    }
+                    mxSetDoubles(plhs[1], out);
 #endif
 				} else {
 					/* Print out the XYZ and Lab */
 					printf("\n Result is XYZ: %f %f %f, %s Lab: %f %f %f\n",
 					XYZ[0], XYZ[1], XYZ[2], labwpname, Lab[0], Lab[1], Lab[2]);
+                    plhs[1] = mxCreateNumericMatrix(1, 6, mxDOUBLE_CLASS, mxREAL);
+                    double tmp[6] = {XYZ[0], XYZ[1], XYZ[2], Lab[0], Lab[1], Lab[2]};
+                    double* out = mxMalloc(6 * sizeof(double));
+                    for(int idx = 0; idx < 6; idx++){
+                        out[idx] = tmp[idx];
+                    }
+                    mxSetDoubles(plhs[1], out);
 				}
 			}
 
@@ -3874,7 +3904,7 @@ done:;
 	if (fp != NULL)
 		fclose(fp);
 
-	*output = 0;
+	*status = 0;
 }
 
 
